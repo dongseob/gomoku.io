@@ -3,10 +3,14 @@
   "name": "omokKing",
   "version": "1.0",
   "description": "omokKing",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "ws://3.38.96.242:3000/*"
+  ],
   "action": {
     "default_popup": "popup.html"
-  },
-  "permissions": [
-    "storage"
-  ]
+  }
 } 
