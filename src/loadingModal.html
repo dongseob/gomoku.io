@@ -1,15 +1,31 @@
 <div
+  id="loadingModal"
   style="
-    width: 100px;
-    height: 100px;
-    background-color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    position: relative;
+    z-index: 100;
   "
 >
-  <div>Loading...</div>
-  <span><span id="timer">0</span> sec</span>
+  <div
+    style="
+      width: 100px;
+      height: 100px;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    "
+  >
+    <div>Loading...</div>
+    <span><span id="timer">0</span> sec</span>
+  </div>
 </div>

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "omokKing",
+  "name": "gomoku.io",
   "version": "1.0",
-  "description": "omokKing",
+  "description": "gomoku.io",
   "permissions": [
     "activeTab",
     "storage"

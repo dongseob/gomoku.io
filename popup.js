@@ -7,41 +7,20 @@ let timeLeft = 0; // 전역 변수로 이동
 let timerInterval; // 인터벌 ID를 저장할 변수
 
 // 로딩 모달을 표시하는 함수
-async function showLoadingModal() {
-  // 타이머 초기화
-  timeLeft = 0;
+async function showLoadingModal(gameMode) {
   clearInterval(timerInterval);
 
-  // 모달 오버레이 생성
-  const modalOverlay = document.createElement('div');
-  modalOverlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-  `;
-
   try {
-    // loadingModal.html 내용 가져오기
-    const response = await fetch('src/loadingModal.html');
-    const html = await response.text();
+    const clientId = await getClientId();
 
-    // HTML 파싱
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const modalContent = doc.body.firstElementChild;
+    // 모달 추가
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = await (await fetch('src/loadingModal.html')).text();
+    // modalContainer.innerHTML = await (await fetch('src/gameScreenModal.html')).text();
+    const modalElement = modalContainer.firstElementChild;
+    document.body.appendChild(modalElement);
 
-    // 모달에 내용 추가
-    modalOverlay.appendChild(modalContent);
-    document.body.appendChild(modalOverlay);
-
-    // HTML이 DOM에 추가된 후에 타이머 시작
+    // 타이머 시작
     timerInterval = setInterval(() => {
       timeLeft++;
       const timerElement = document.getElementById('timer');
@@ -50,74 +29,139 @@ async function showLoadingModal() {
       }
     }, 1000);
 
-    // 모달 외부 클릭시 닫기
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        document.body.removeChild(modalOverlay);
+    // 모달 외부 클릭시 닫기 이벤트 리스너
+    modalElement.addEventListener('click', (e) => {
+      if (e.target === modalElement) {
+        ws.close();
+        document.body.removeChild(modalElement);
         clearInterval(timerInterval);
+        timeLeft = 0;
       }
     });
 
     // WebSocket 연결
-    const ws = new WebSocket('ws://3.38.96.242:3000');
+    const ws = new WebSocket('ws://3.36.100.173:3000');
 
     ws.onopen = () => {
       console.log('서버 연결 성공!');
-      // 매칭 요청 보내기
       ws.send(
         JSON.stringify({
           type: 'matching',
+          gameMode: gameMode,
+          clientId: clientId,
         })
       );
     };
 
     ws.onmessage = (event) => {
-      console.log('서버로부터 메시지 수신:', event.data);
-      const data = JSON.parse(event.data);
+      try {
+        const data = JSON.parse(event.data);
 
-      if (data.type === 'matched') {
-        console.log('매칭 성공! 역할:', data.role);
-        // 타이머 정지
-        clearInterval(timerInterval);
-
-        // 플레이어 역할 저장
-        chrome.storage.local.set({ playerRole: data.role }, () => {
-          // 게임 화면으로 이동
-          window.location.href = 'src/gameScreen.html';
-        });
+        switch (data.type) {
+          case 'matched':
+            handleMatchSuccess(data);
+            break;
+          case 'waiting':
+            updateWaitingStatus(data);
+            break;
+          case 'error':
+            handleMatchError(data);
+            break;
+        }
+      } catch (error) {
+        console.error('메시지 처리 중 오류:', error);
       }
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket 에러 발생:', error);
-      const timerElement = document.getElementById('timer');
-      if (timerElement) {
-        timerElement.textContent = '연결 오류 발생!';
-      }
+      console.error('WebSocket 에러:', error);
     };
 
-    ws.onclose = () => {
-      console.log('서버와 연결이 끊어졌습니다.');
-      clearInterval(timerInterval);
-      const timerElement = document.getElementById('timer');
-      if (timerElement) {
-        timerElement.textContent = '서버와 연결이 끊어졌습니다.';
-      }
+    ws.onclose = (event) => {
+      console.log('서버와 연결이 종료됨:', event.code, event.reason);
     };
-
-    // 모달 외부 클릭시 닫기 및 WebSocket 연결 종료
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        ws.close();
-        document.body.removeChild(modalOverlay);
-        clearInterval(timerInterval);
-      }
-    });
   } catch (error) {
-    console.error('모달을 불러오는데 실패했습니다:', error);
+    handleError('매칭 처리 중 오류가 발생했습니다:', error);
   }
 }
-// 버튼 클릭 이벤트 리스너 추가
-quickStartBtn.addEventListener('click', showLoadingModal);
-customStartBtn.addEventListener('click', showLoadingModal);
+
+// 버튼 클릭 이벤트 리스너 수정
+quickStartBtn.addEventListener('click', () => showLoadingModal('quick'));
+customStartBtn.addEventListener('click', () => showLoadingModal('custom'));
 // ------------------- 로딩 모달 출력 끝 -------------------
+
+
+// 클라이언트 ID 생성 및 가져오기
+async function getClientId() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['clientId'], (result) => {
+      if (result.clientId) {
+        resolve(result.clientId);
+      } else {
+        const newClientId = 'client_' + Date.now();
+        chrome.storage.local.set({ clientId: newClientId }, () => {
+          resolve(newClientId);
+        });
+      }
+    });
+  });
+}
+
+// 클라이언트 ID 표시
+document.addEventListener('DOMContentLoaded', async () => {
+  const clientId = await getClientId();
+  const clientIdElement = document.getElementById('clientId');
+  if (clientIdElement) {
+    clientIdElement.textContent = clientId;
+  }
+});
+
+// 매칭 성공 시 게임 화면 출력
+async function handleMatchSuccess(data) {
+  // 로딩 모달 제거
+  const loadingModal = document.querySelector('#loadingModal');
+  if (loadingModal) {
+      document.body.removeChild(loadingModal);
+  }
+  clearInterval(timerInterval);
+  
+  // gameScreenModal 추가
+  const modalContainer = document.createElement('div');
+  modalContainer.innerHTML = await (await fetch('src/gameScreenModal.html')).text();
+  const gameScreenModal = modalContainer.firstElementChild;
+  
+  // 내 아이디와 상대방 아이디 세팅
+  const myClientId = await getClientId();
+  const clientIdElement = gameScreenModal.querySelector('#clientId');
+  const enemyIdElement = gameScreenModal.querySelector('#enemyId');
+  
+  if (clientIdElement) {
+      clientIdElement.textContent = myClientId;
+  }
+  
+  if (enemyIdElement) {
+      enemyIdElement.textContent = data.enemy;
+  }
+  
+  // 게임 데이터 전달을 위한 커스텀 이벤트 발생
+  const gameDataEvent = new CustomEvent('gameDataReceived', {
+      detail: {
+          role: data.role,
+          gameId: data.gameId,
+          enemy: data.enemy
+      }
+  });
+  
+  document.body.appendChild(gameScreenModal);
+  document.dispatchEvent(gameDataEvent);
+
+  // 게임 종료 버튼 클릭 이벤트 리스너
+  const exitGameBtn = gameScreenModal.querySelector('#exitGame');
+  if (exitGameBtn) {
+      exitGameBtn.addEventListener('click', () => {
+          if (gameScreenModal) {
+              document.body.removeChild(gameScreenModal);
+          }
+      });
+  }
+}

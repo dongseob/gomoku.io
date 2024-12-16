@@ -1,1 +1,1 @@
-# omokKing
+# gomoku.io
