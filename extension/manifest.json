@@ -11,6 +11,7 @@
     "ws://3.38.96.242:3000/*"
   ],
   "action": {
-    "default_popup": "popup.html"
+    "default_title": "gomoku.io",
+    "default_popup": "index.html"
   }
 } 
