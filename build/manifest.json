@@ -1,0 +1,11 @@
+{
+    "manifest_version": 3,
+    "name": "gomoku.io",
+    "version": "1.0.0",
+    "description": "gomoku.io",
+    "action": {
+      "default_popup": "index.html",
+      "default_title": "gomoku.io"
+    },
+    "permissions": []
+  }
