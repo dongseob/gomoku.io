@@ -52,7 +52,7 @@ const Home = ({ clientId }: { clientId: string }) => {
         <div className='absolute top-2 right-2 text-sm'>by jds</div>
       </div>
 
-      {isLoading && <Loading setIsLoading={setIsLoading} />}
+      {isLoading && <Loading setIsLoading={setIsLoading} type='quick' />}
       {isCustomModal && <ModalCustomGame setIsCustomModal={setIsCustomModal} />}
     </>
   );

@@ -34,7 +34,7 @@ const ModalCustomGame = ({ setIsCustomModal }: { setIsCustomModal: (modal: boole
           </div>
         </div>
       </div>
-      {isLoading && <Loading setIsLoading={setIsLoading} />}
+      {isLoading && <Loading setIsLoading={setIsLoading} type='custom' />}
     </>
   );
 };

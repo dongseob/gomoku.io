@@ -1,6 +1,52 @@
 import GameScreenBoard from './GameScreenBoard';
+import { useEffect } from 'react';
 
-const GameScreen = ({ clientId }: { clientId: string }) => {
+const GameScreen = () => {
+
+  useEffect(() => {
+    const ws = new WebSocket('ws://3.36.100.173:3000');
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('clientId');
+    const gameId = urlParams.get('gameId');
+    const enemyClientId = urlParams.get('enemyClientId');
+
+    // 필요한 파라미터가 없으면 메인 페이지로 리다이렉트
+    if (!clientId || !gameId || !enemyClientId) {
+      alert('게임 참가에 필요한 정보가 부족합니다.');
+      window.location.href = '/';
+      return;
+    }
+
+    ws.onopen = () => {
+      // 게임 참가 메시지 전송
+      ws.send(JSON.stringify({
+        type: 'joinGame',
+        clientId,
+        gameId,
+        enemyClientId
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'gameJoined':
+            console.log(data);
+            console.log('게임 참가 성공');
+            break;
+          case 'close':
+            alert(data.message || '상대방이 나갔습니다.');
+            window.location.href = '/';
+            break;
+        }
+      } catch (error) {
+        console.error('메시지 처리 중 오류:', error);
+      }
+    };
+  }, []);
+
   return (
     <div className='flex h-full'>
       {/* 게임 화면 */}
